@@ -133,6 +133,7 @@ let
     });
   };
 
+  # This will yield a set of haskell packages, based on the given compiler.
   cardanoPkgsBase = ((import ./pkgs { inherit pkgs; }).override {
     ghc = pkgs.haskell.compiler.ghc843;
   });
@@ -145,6 +146,9 @@ let
       ++ optional fasterBuild fasterBuildOverlay;
 
   cardanoPkgs = builtins.foldl' (pkgs: overlay: pkgs.extend overlay) cardanoPkgsBase activeOverlays;
+
+  # Further customizations
+
   connect = let
       walletConfigFile = ./custom-wallet-config.nix;
       walletConfig = if allowCustomConfig then (if builtins.pathExists walletConfigFile then import walletConfigFile else {}) else {};
