@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Cardano.Wallet.Action
+                       Cardano.Wallet.Demo
                        Cardano.Wallet.LegacyAction
                        Cardano.Wallet.API
                        Cardano.Wallet.API.Indices
@@ -171,6 +172,7 @@ library
                      , aeson-options
                      , aeson-pretty
                      , async
+                     , attoparsec
                      , base58-bytestring
                      , beam-core
                      , beam-migrate
@@ -210,6 +212,7 @@ library
                      , http-client
                      , http-client-tls
                      , http-types
+                     , iproute
                      , ixset-typed
                      , lens
                      , memory
@@ -218,6 +221,7 @@ library
                      , neat-interpolation
                      , network-transport
                      , optparse-applicative
+                     , parsec
                      , QuickCheck
                      , QuickCheck
                      , reflection
@@ -239,6 +243,7 @@ library
                      , stm
                      , stm
                      , swagger2
+                     , temporary
                      , text
                      , time
                      , time-units
