@@ -7,7 +7,8 @@ module Test.Spec.Wallets (
 
 import           Universum
 
-import           Test.Hspec (Spec, describe, shouldBe, shouldSatisfy)
+import           Test.Hspec (Spec, describe, shouldBe, shouldNotBe,
+                     shouldSatisfy)
 import           Test.Hspec.QuickCheck (prop)
 import           Test.QuickCheck (arbitrary, suchThat, vectorOf, withMaxSuccess)
 import           Test.QuickCheck.Monadic (PropertyM, monadicIO, pick)
@@ -23,6 +24,7 @@ import qualified Cardano.Wallet.Kernel.BIP39 as BIP39
 import           Cardano.Wallet.Kernel.DB.HdWallet (AssuranceLevel (..),
                      HdRootId (..), UnknownHdRoot (..), WalletName (..),
                      hdRootId)
+import qualified Cardano.Wallet.Kernel.DB.HdWallet as HD
 import           Cardano.Wallet.Kernel.DB.HdWallet.Create
                      (CreateHdRootError (..))
 import           Cardano.Wallet.Kernel.DB.InDb (InDb (..))
@@ -311,8 +313,9 @@ spec = describe "Wallets" $ do
         describe "Wallet update password (kernel)" $ do
             prop "correctly replaces the ESK in the keystore" $ withMaxSuccess 50 $
                 monadicIO $ do
-                    newPwd <- pick arbitrary
+                    newPwd <- pick $ arbitrary `suchThat` (/= emptyPassphrase)
                     withNewWalletFixture $ \ keystore _ wallet Fixture{..} -> do
+                        newPwd `shouldNotBe` emptyPassphrase
                         let wid = WalletIdHdRnd fixtureHdRootId
                         oldKey <- Keystore.lookup wid keystore
                         res <- Kernel.updatePassword wallet
@@ -325,6 +328,25 @@ spec = describe "Wallets" $ do
                                  --  Check that the key was replaced in the keystore correctly.
                                  newKey <- Keystore.lookup wid keystore
                                  newKey `shouldSatisfy` isJust
+                                 (_newRoot ^. HD.hdRootHasPassword) `shouldNotBe` HD.NoSpendingPassword
+                                 (fmap hash newKey) `shouldSatisfy` (not . (==) (fmap hash oldKey))
+
+            prop "correctly handles removal of passphrase" $ do
+                monadicIO $ do
+                    let newPwd = emptyPassphrase
+                    withNewWalletFixture $ \ keystore _ wallet Fixture{..} -> do
+                        let wid = WalletIdHdRnd fixtureHdRootId
+                        oldKey <- Keystore.lookup wid keystore
+                        res <- Kernel.updatePassword wallet
+                                                     fixtureHdRootId
+                                                     (unV1 fixtureSpendingPassword)
+                                                     newPwd
+                        case res of
+                             Left e -> fail (show e)
+                             Right (_, newRoot) -> do
+                                 newKey <- Keystore.lookup wid keystore
+                                 newKey `shouldSatisfy` isJust
+                                 (newRoot ^. HD.hdRootHasPassword) `shouldBe` HD.NoSpendingPassword
                                  (fmap hash newKey) `shouldSatisfy` (not . (==) (fmap hash oldKey))
 
         describe "Wallet update password (Servant)" $ do
